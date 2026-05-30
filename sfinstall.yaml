@@ -1,0 +1,37 @@
+name: Salesforce Deployment
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Salesforce CLI
+        run: |
+          wget https://developer.salesforce.com/media/salesforce-cli/sf/channels/stable/sf-linux-x64.tar.xz
+          mkdir sf
+          tar xJf sf-linux-x64.tar.xz -C sf --strip-components 1
+          echo "$PWD/sf/bin" >> $GITHUB_PATH
+
+      - name: Verify Salesforce CLI
+        run: |
+          sf --version
+
+      - name: Authenticate Salesforce Org
+        run: |
+          echo "${{ secrets.SFDX_AUTH_URL }}" > authfile.txt
+          sf org login sfdx-url \
+            --sfdx-url-file authfile.txt \
+            --alias target-org
+
+      - name: Deploy Metadata
+        run: |
+          sf project deploy start \
+            --target-org target-org \
+            --source-dir force-app \
+            --wait 30
